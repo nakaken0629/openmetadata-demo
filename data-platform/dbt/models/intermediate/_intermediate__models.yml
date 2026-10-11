@@ -1,0 +1,54 @@
+models:
+  - name: int_sessions
+    description: GA のイベントをセッション単位に集約したもの。流入元とデバイスはセッション最初のイベントの値
+    columns:
+      - name: session_key
+        description: セッションを一意に識別するキー
+        data_tests: [unique, not_null]
+      - name: user_pseudo_id
+        description: ブラウザ（Cookie）ごとに付与される匿名のユーザー ID
+      - name: customer_id
+        description: セッション中にログインした顧客の顧客 ID。ログインしていない場合は NULL
+      - name: session_number
+        description: user_pseudo_id ごとのセッションの通し番号
+      - name: session_date
+        description: セッション開始日
+      - name: session_started_at
+        description: セッション最初のイベントの発生日時
+      - name: session_ended_at
+        description: セッション最後のイベントの発生日時
+      - name: traffic_source
+        description: 流入元
+      - name: traffic_medium
+        description: 流入経路
+      - name: traffic_campaign
+        description: 流入元のキャンペーン（utm_campaign）
+      - name: device_category
+        description: デバイスの種類
+      - name: page_views
+        description: ページビュー数
+      - name: item_views
+        description: 商品詳細の閲覧数
+      - name: is_converted
+        description: セッション中に購入したか
+      - name: order_id
+        description: セッション中に購入した注文の注文 ID
+      - name: purchase_revenue
+        description: セッション中の購入金額（ドル）
+
+  - name: int_order_payments
+    description: 注文ごとの決済金額を支払い方法別に集計したもの
+    columns:
+      - name: order_id
+        description: 注文 ID
+        data_tests: [unique, not_null]
+      - name: credit_card_amount
+        description: クレジットカードでの決済金額（ドル）
+      - name: coupon_amount
+        description: クーポンでの決済金額（ドル）
+      - name: bank_transfer_amount
+        description: 銀行振込での決済金額（ドル）
+      - name: gift_card_amount
+        description: ギフトカードでの決済金額（ドル）
+      - name: total_amount
+        description: 決済金額の合計（ドル）

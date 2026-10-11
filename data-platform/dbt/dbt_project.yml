@@ -1,0 +1,19 @@
+name: ec_analytics
+version: "1.0.0"
+profile: ec_analytics
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+clean-targets: ["target", "logs"]
+
+models:
+  ec_analytics:
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table

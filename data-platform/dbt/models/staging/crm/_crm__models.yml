@@ -1,0 +1,98 @@
+models:
+  - name: stg_crm__contacts
+    description: CRM の顧客
+    columns:
+      - name: contact_id
+        description: CRM の顧客 ID
+        data_tests: [unique, not_null]
+      - name: customer_id
+        description: Web アプリの顧客 ID。見込み客の場合は NULL
+        data_tests:
+          - unique
+          - relationships:
+              arguments:
+                to: ref('stg_webapp__customers')
+                field: customer_id
+      - name: first_name
+        description: 名
+      - name: last_name
+        description: 姓（イニシャル）
+      - name: email
+        description: メールアドレス
+        data_tests: [unique]
+      - name: phone
+        description: 電話番号
+      - name: birth_date
+        description: 生年月日
+      - name: membership_rank
+        description: 会員ランク。見込み客の場合は NULL
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [bronze, silver, gold]
+      - name: is_email_opt_in
+        description: メールマガジンの配信に同意しているか
+      - name: created_at
+        description: 登録日時
+      - name: updated_at
+        description: 更新日時
+
+  - name: stg_crm__inquiries
+    description: CRM の問い合わせ
+    columns:
+      - name: inquiry_id
+        description: 問い合わせ ID
+        data_tests: [unique, not_null]
+      - name: contact_id
+        description: 問い合わせた顧客の CRM の顧客 ID
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_crm__contacts')
+                field: contact_id
+      - name: order_id
+        description: 問い合わせ対象の注文 ID。注文に関係しない場合は NULL
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_webapp__orders')
+                field: order_id
+      - name: category
+        description: 問い合わせの種類
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [return, delivery, payment, product, account]
+      - name: channel
+        description: 問い合わせの窓口
+      - name: status
+        description: 対応状況
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [open, in_progress, closed]
+      - name: created_at
+        description: 受付日時
+      - name: closed_at
+        description: 完了日時。未完了の場合は NULL
+
+  - name: stg_crm__campaigns
+    description: CRM のマーケティングキャンペーン
+    columns:
+      - name: campaign_id
+        description: キャンペーン ID
+        data_tests: [unique, not_null]
+      - name: campaign_name
+        description: キャンペーン名
+      - name: utm_campaign
+        description: utm_campaign の値
+        data_tests: [unique, not_null]
+      - name: channel
+        description: 配信チャネル
+      - name: start_date
+        description: 開始日
+      - name: end_date
+        description: 終了日
+      - name: budget
+        description: 予算（円）

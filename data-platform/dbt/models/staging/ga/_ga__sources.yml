@@ -1,0 +1,40 @@
+sources:
+  - name: ga
+    description: Google Analytics の日次エクスポートファイルを取り込んだテーブル
+    schema: raw_ga
+    config:
+      loaded_at_field: _loaded_at
+      freshness:
+        warn_after: {count: 1, period: day}
+    tables:
+      - name: events
+        description: EC サイトで発生したイベント。イベントごとに 1 行（GA4 のイベントエクスポートを平坦化した形式）
+        columns:
+          - name: event_date
+            description: イベント発生日（YYYYMMDD 形式の文字列）
+          - name: event_timestamp
+            description: イベント発生日時（UNIX エポックからのマイクロ秒）
+          - name: event_name
+            description: イベント名（session_start、page_view、view_item、add_to_cart、begin_checkout、login、purchase）
+          - name: user_pseudo_id
+            description: ブラウザ（Cookie）ごとに付与される匿名のユーザー ID
+          - name: user_id
+            description: ログイン後に付与される顧客 ID。Web アプリの顧客 ID と対応する
+          - name: ga_session_id
+            description: セッション ID（セッション開始日時の UNIX 秒）。user_pseudo_id と組み合わせて一意になる
+          - name: ga_session_number
+            description: user_pseudo_id ごとのセッションの通し番号
+          - name: page_location
+            description: ページの URL
+          - name: traffic_source
+            description: 流入元（google、newsletter など）
+          - name: traffic_medium
+            description: 流入経路（organic、email、cpc など）
+          - name: traffic_campaign
+            description: 流入元のキャンペーン（utm_campaign）。CRM のキャンペーンと対応する
+          - name: device_category
+            description: デバイスの種類（desktop、mobile、tablet）
+          - name: transaction_id
+            description: 購入イベントの取引 ID。Web アプリの注文 ID と対応する
+          - name: purchase_revenue
+            description: 購入イベントの売上金額（ドル）

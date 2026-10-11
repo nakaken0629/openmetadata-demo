@@ -1,0 +1,70 @@
+sources:
+  - name: crm
+    description: 社内の顧客管理システム（CRM）のエクスポートファイルを取り込んだテーブル
+    schema: raw_crm
+    config:
+      loaded_at_field: _loaded_at
+      freshness:
+        warn_after: {count: 1, period: day}
+    tables:
+      - name: contacts
+        description: CRM の顧客。会員の大半と、会員登録していない見込み客を含む
+        columns:
+          - name: contact_id
+            description: CRM の顧客 ID
+          - name: external_customer_id
+            description: Web アプリの顧客 ID。見込み客の場合は空
+          - name: first_name
+            description: 名
+          - name: last_name
+            description: 姓（イニシャル）
+          - name: email
+            description: メールアドレス
+          - name: phone
+            description: 電話番号
+          - name: birth_date
+            description: 生年月日
+          - name: membership_rank
+            description: 会員ランク（bronze、silver、gold）。見込み客の場合は空
+          - name: email_opt_in
+            description: メールマガジンの配信に同意しているか
+          - name: created_at
+            description: 登録日時
+          - name: updated_at
+            description: 更新日時
+      - name: inquiries
+        description: 顧客からの問い合わせ
+        columns:
+          - name: inquiry_id
+            description: 問い合わせ ID
+          - name: contact_id
+            description: 問い合わせた顧客の CRM の顧客 ID
+          - name: order_id
+            description: 問い合わせ対象の注文 ID（Web アプリの注文 ID）。注文に関係しない場合は空
+          - name: category
+            description: 問い合わせの種類（return、delivery、payment、product、account）
+          - name: channel
+            description: 問い合わせの窓口（email、phone、chat）
+          - name: status
+            description: 対応状況（open、in_progress、closed）
+          - name: created_at
+            description: 受付日時
+          - name: closed_at
+            description: 完了日時
+      - name: campaigns
+        description: マーケティングキャンペーン
+        columns:
+          - name: campaign_id
+            description: キャンペーン ID
+          - name: campaign_name
+            description: キャンペーン名
+          - name: utm_campaign
+            description: 広告やメールのリンクに付与する utm_campaign の値。GA の traffic_campaign と対応する
+          - name: channel
+            description: 配信チャネル（email、social、cpc）
+          - name: start_date
+            description: 開始日
+          - name: end_date
+            description: 終了日
+          - name: budget
+            description: 予算（円）

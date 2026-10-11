@@ -1,0 +1,39 @@
+models:
+  - name: stg_ga__events
+    description: GA のイベント
+    columns:
+      - name: event_date
+        description: イベント発生日
+      - name: event_at
+        description: イベント発生日時
+        data_tests: [not_null]
+      - name: event_name
+        description: イベント名
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [session_start, page_view, view_item, add_to_cart, begin_checkout, login, purchase]
+      - name: user_pseudo_id
+        description: ブラウザ（Cookie）ごとに付与される匿名のユーザー ID
+        data_tests: [not_null]
+      - name: customer_id
+        description: ログイン後に付与される顧客 ID。未ログインの場合は NULL
+      - name: session_key
+        description: セッションを一意に識別するキー（user_pseudo_id と GA のセッション ID の組み合わせ）
+        data_tests: [not_null]
+      - name: session_number
+        description: user_pseudo_id ごとのセッションの通し番号
+      - name: page_path
+        description: ページのパス
+      - name: traffic_source
+        description: 流入元
+      - name: traffic_medium
+        description: 流入経路
+      - name: traffic_campaign
+        description: 流入元のキャンペーン（utm_campaign）。キャンペーン経由でない場合は NULL
+      - name: device_category
+        description: デバイスの種類
+      - name: order_id
+        description: 購入イベントの注文 ID
+      - name: purchase_revenue
+        description: 購入イベントの売上金額（ドル）

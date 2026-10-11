@@ -1,0 +1,56 @@
+models:
+  - name: stg_webapp__customers
+    description: Web アプリの会員
+    columns:
+      - name: customer_id
+        description: 顧客 ID
+        data_tests: [unique, not_null]
+      - name: first_name
+        description: 名
+      - name: last_name
+        description: 姓（イニシャル）
+
+  - name: stg_webapp__orders
+    description: Web アプリの注文
+    columns:
+      - name: order_id
+        description: 注文 ID
+        data_tests: [unique, not_null]
+      - name: customer_id
+        description: 注文した顧客の顧客 ID
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_webapp__customers')
+                field: customer_id
+      - name: order_date
+        description: 注文日
+      - name: status
+        description: 注文ステータス
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [placed, shipped, completed, return_pending, returned]
+
+  - name: stg_webapp__payments
+    description: Web アプリの決済
+    columns:
+      - name: payment_id
+        description: 決済 ID
+        data_tests: [unique, not_null]
+      - name: order_id
+        description: 注文 ID
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_webapp__orders')
+                field: order_id
+      - name: payment_method
+        description: 支払い方法
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [credit_card, coupon, bank_transfer, gift_card]
+      - name: amount
+        description: 決済金額（ドル）

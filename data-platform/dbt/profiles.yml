@@ -1,0 +1,12 @@
+ec_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_POSTGRES_HOST', 'postgres') }}"
+      port: 5432
+      user: "{{ env_var('DBT_POSTGRES_USER', 'dwh') }}"
+      password: "{{ env_var('DBT_POSTGRES_PASSWORD', 'dwh') }}"
+      dbname: dwh
+      schema: analytics
+      threads: 4

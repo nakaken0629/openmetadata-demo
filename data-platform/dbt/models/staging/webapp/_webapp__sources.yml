@@ -1,0 +1,40 @@
+sources:
+  - name: webapp
+    description: 顧客向け EC サイト（Web アプリ）のエクスポートファイルを取り込んだテーブル
+    schema: raw_webapp
+    config:
+      loaded_at_field: _loaded_at
+      freshness:
+        warn_after: {count: 1, period: day}
+    tables:
+      - name: customers
+        description: 会員。会員登録した顧客ごとに 1 行
+        columns:
+          - name: id
+            description: 顧客 ID
+          - name: first_name
+            description: 名
+          - name: last_name
+            description: 姓（イニシャル）
+      - name: orders
+        description: 注文。注文ごとに 1 行
+        columns:
+          - name: id
+            description: 注文 ID
+          - name: user_id
+            description: 注文した顧客の顧客 ID
+          - name: order_date
+            description: 注文日
+          - name: status
+            description: 注文ステータス（placed、shipped、completed、return_pending、returned）
+      - name: payments
+        description: 決済。1 つの注文に複数の決済（クーポンとクレジットカードの併用など）がありうる
+        columns:
+          - name: id
+            description: 決済 ID
+          - name: order_id
+            description: 注文 ID
+          - name: payment_method
+            description: 支払い方法（credit_card、coupon、bank_transfer、gift_card）
+          - name: amount
+            description: 決済金額（セント単位）

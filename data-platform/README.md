@@ -29,9 +29,9 @@ sources/ (エクスポートファイル)
    │  loader
    ▼
 Postgres (dwh データベース)
-   ├── raw_webapp
-   ├── raw_ga
-   └── raw_crm
+   ├── raw_webapp ─┐
+   ├── raw_ga     ─┼─ dbt ─→ staging → intermediate → marts
+   └── raw_crm    ─┘
 ```
 
 | コンテナ | 概要 |
@@ -39,8 +39,44 @@ Postgres (dwh データベース)
 | `data_platform_postgres` | DWH（Postgres 17） |
 | `data_platform_generator` | エクスポートファイルを用意する。完了後に終了する |
 | `data_platform_loader` | エクスポートファイルを raw テーブルに取り込む。取り込み完了後に終了する |
+| `data_platform_dbt` | dbt（dbt-core 1.12 / dbt-postgres 1.11）でモデルの構築・テストとドキュメント生成を行う。完了後に終了する |
 
 loader は毎回 raw テーブルを空にしてから全ファイルを取り込み直します。各 raw テーブルには、取り込み元のファイル名（`_source_file`）と取り込み日時（`_loaded_at`）の列が付与されます。
+
+## dbt プロジェクト
+
+dbt プロジェクトは `dbt/` にあります。モデルは層ごとに別のスキーマに作成されます。
+
+| 層 | スキーマ | 形式 | モデル |
+| --- | --- | --- | --- |
+| staging | `staging` | ビュー | ソース（raw テーブル）ごとに列名・型を整えたもの（`stg_webapp__*`、`stg_ga__events`、`stg_crm__*`） |
+| intermediate | `intermediate` | ビュー | `int_sessions`（GA のイベントをセッション単位に集約）、`int_order_payments`（注文ごとの決済金額を支払い方法別に集計） |
+| marts | `marts` | テーブル | 下表 |
+
+| marts のモデル | 概要 |
+| --- | --- |
+| `dim_customers` | 顧客。Web アプリの会員に CRM の顧客情報と、注文・セッション・問い合わせの集計値を統合した顧客 360 ビュー |
+| `dim_campaigns` | マーケティングキャンペーン。キャンペーン経由のセッション数・購入数・売上を含む |
+| `fct_orders` | 注文。決済金額と、購入したセッションの流入元を含む |
+| `fct_sessions` | EC サイトへの訪問（セッション） |
+| `fct_inquiries` | 問い合わせ |
+
+`dim_customers.contact_id` の not_null テストは、CRM に登録されていない会員（8 名）を検出するため警告（WARN）になります。
+
+dbt コンテナは `dbt build` の後に `dbt docs generate --no-compile` を実行し、`dbt/target/` に次の成果物を出力します。`--no-compile` を付けないと、`run_results.json` が docs generate の結果で上書きされ、テスト結果が失われます。
+
+| ファイル | 内容 |
+| --- | --- |
+| `manifest.json` | プロジェクトの定義（モデル、ソース、テスト、リネージ、説明など） |
+| `catalog.json` | DWH 上のテーブル・列の情報 |
+| `run_results.json` | `dbt build` の実行結果（テスト結果を含む） |
+
+dbt のコマンドを個別に実行する場合は次のようにします。
+
+```bash
+docker compose run --rm dbt dbt build
+docker compose run --rm dbt dbt docs generate --no-compile
+```
 
 ## 起動
 
@@ -56,10 +92,12 @@ docker network create openmetadata-demo
 docker compose up --detach
 ```
 
-generator がエクスポートファイルを用意し、Postgres の起動後に loader がそれを取り込んで終了します。取り込み直す場合は次を実行します。
+generator がエクスポートファイルを用意し、Postgres の起動後に loader がそれを取り込みます。その後 dbt がモデルの構築・テストとドキュメント生成を行って終了します。
+
+取り込みからやり直す場合は次を実行します（generator と loader も実行されます）。
 
 ```bash
-docker compose run --rm loader
+docker compose run --rm dbt
 ```
 
 ## 接続情報

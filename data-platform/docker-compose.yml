@@ -53,6 +53,22 @@ services:
       postgres:
         condition: service_healthy
 
+  # dbt でモデルの構築・テストとドキュメント生成を行う。完了後に終了する
+  # docs generate はコンパイルし直すと run_results.json（テスト結果）を上書きするため、
+  # --no-compile で build の成果物（manifest.json、run_results.json）をそのまま使い、catalog.json だけを生成する。
+  # テストが失敗しても catalog.json は生成し、終了コードは build の結果を返す。
+  dbt:
+    container_name: data_platform_dbt
+    build: ./dbt
+    command: >-
+      sh -c "dbt build; status=$$?;
+      dbt docs generate --no-compile && exit $$status"
+    volumes:
+      - ./dbt:/usr/app
+    depends_on:
+      loader:
+        condition: service_completed_successfully
+
 volumes:
   dwh-data:
 

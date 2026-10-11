@@ -1,0 +1,195 @@
+models:
+  - name: dim_customers
+    description: 顧客。Web アプリの会員ごとに 1 行。CRM の顧客情報と、注文・セッション・問い合わせの集計値を統合した顧客 360 ビュー
+    config:
+      tags: [customer]
+    columns:
+      - name: customer_id
+        description: 顧客 ID
+        data_tests: [unique, not_null]
+      - name: first_name
+        description: 名
+      - name: last_name
+        description: 姓（イニシャル）
+      - name: contact_id
+        description: CRM の顧客 ID。CRM に登録されていない会員の場合は NULL
+        data_tests:
+          # CRM に登録されていない会員がいるため、警告にとどめる
+          - not_null:
+              config:
+                severity: warn
+      - name: email
+        description: メールアドレス（CRM）
+      - name: phone
+        description: 電話番号（CRM）
+      - name: birth_date
+        description: 生年月日（CRM）
+      - name: membership_rank
+        description: 会員ランク（CRM）
+      - name: is_email_opt_in
+        description: メールマガジンの配信に同意しているか（CRM）
+      - name: first_order_date
+        description: 初回注文日
+      - name: most_recent_order_date
+        description: 最終注文日
+      - name: number_of_orders
+        description: 注文数
+      - name: lifetime_value
+        description: 累計購入金額（ドル）
+      - name: number_of_sessions
+        description: EC サイトへの訪問（セッション）数
+      - name: number_of_inquiries
+        description: 問い合わせ数
+
+  - name: dim_campaigns
+    description: マーケティングキャンペーン。キャンペーン経由のセッション数・購入数・売上を集計したもの
+    config:
+      tags: [marketing]
+    columns:
+      - name: campaign_id
+        description: キャンペーン ID
+        data_tests: [unique, not_null]
+      - name: campaign_name
+        description: キャンペーン名
+      - name: utm_campaign
+        description: utm_campaign の値
+      - name: channel
+        description: 配信チャネル
+      - name: start_date
+        description: 開始日
+      - name: end_date
+        description: 終了日
+      - name: budget
+        description: 予算（円）
+      - name: number_of_sessions
+        description: キャンペーン経由のセッション数
+      - name: number_of_conversions
+        description: キャンペーン経由で購入したセッション数
+      - name: revenue
+        description: キャンペーン経由の売上（ドル）
+
+  - name: fct_orders
+    description: 注文。注文ごとに 1 行。決済金額と、購入したセッションの流入元を含む
+    config:
+      tags: [sales]
+    columns:
+      - name: order_id
+        description: 注文 ID
+        data_tests: [unique, not_null]
+      - name: customer_id
+        description: 注文した顧客の顧客 ID
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: order_date
+        description: 注文日
+      - name: status
+        description: 注文ステータス
+      - name: credit_card_amount
+        description: クレジットカードでの決済金額（ドル）
+      - name: coupon_amount
+        description: クーポンでの決済金額（ドル）
+      - name: bank_transfer_amount
+        description: 銀行振込での決済金額（ドル）
+      - name: gift_card_amount
+        description: ギフトカードでの決済金額（ドル）
+      - name: amount
+        description: 決済金額の合計（ドル）
+        data_tests:
+          - non_negative
+      - name: session_key
+        description: 購入したセッションのキー
+      - name: traffic_source
+        description: 購入したセッションの流入元
+      - name: traffic_medium
+        description: 購入したセッションの流入経路
+      - name: campaign_id
+        description: 購入したセッションの流入元キャンペーン
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_campaigns')
+                field: campaign_id
+      - name: device_category
+        description: 購入したセッションのデバイスの種類
+
+  - name: fct_sessions
+    description: EC サイトへの訪問（セッション）。セッションごとに 1 行
+    config:
+      tags: [marketing]
+    columns:
+      - name: session_key
+        description: セッションを一意に識別するキー
+        data_tests: [unique, not_null]
+      - name: user_pseudo_id
+        description: ブラウザ（Cookie）ごとに付与される匿名のユーザー ID
+      - name: customer_id
+        description: 顧客 ID。ログインしていないセッションでも、同じブラウザでログインしたことがあればその顧客とみなす
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: session_number
+        description: user_pseudo_id ごとのセッションの通し番号
+      - name: session_date
+        description: セッション開始日
+      - name: session_started_at
+        description: セッション開始日時
+      - name: session_ended_at
+        description: セッション終了日時
+      - name: duration_seconds
+        description: セッションの長さ（秒）
+      - name: traffic_source
+        description: 流入元
+      - name: traffic_medium
+        description: 流入経路
+      - name: campaign_id
+        description: 流入元のキャンペーン。キャンペーン経由でない場合は NULL
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_campaigns')
+                field: campaign_id
+      - name: device_category
+        description: デバイスの種類
+      - name: page_views
+        description: ページビュー数
+      - name: item_views
+        description: 商品詳細の閲覧数
+      - name: is_converted
+        description: セッション中に購入したか
+      - name: order_id
+        description: セッション中に購入した注文の注文 ID
+      - name: purchase_revenue
+        description: セッション中の購入金額（ドル）
+
+  - name: fct_inquiries
+    description: 問い合わせ。問い合わせごとに 1 行
+    config:
+      tags: [customer]
+    columns:
+      - name: inquiry_id
+        description: 問い合わせ ID
+        data_tests: [unique, not_null]
+      - name: contact_id
+        description: 問い合わせた顧客の CRM の顧客 ID
+      - name: customer_id
+        description: 問い合わせた顧客の顧客 ID。見込み客の場合は NULL
+      - name: order_id
+        description: 問い合わせ対象の注文 ID
+      - name: category
+        description: 問い合わせの種類
+      - name: channel
+        description: 問い合わせの窓口
+      - name: status
+        description: 対応状況
+      - name: created_at
+        description: 受付日時
+      - name: closed_at
+        description: 完了日時
+      - name: resolution_hours
+        description: 受付から完了までの時間（時間）。未完了の場合は NULL
