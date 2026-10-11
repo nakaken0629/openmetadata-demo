@@ -110,6 +110,9 @@ docker compose run --rm dbt
 | ポート | 5432 |
 | データベース | `dwh` |
 | ユーザー名 / パスワード | `dwh` / `dwh` |
+| 読み取り専用ユーザー（OpenMetadata 用） | `openmetadata` / `openmetadata` |
+
+読み取り専用ユーザーは、Postgres の初回起動時に `postgres/init/01_openmetadata_user.sql` で作成されます。`dwh` ユーザーが作成するすべてのスキーマ・テーブル・ビューを参照できます。
 
 ## 停止・削除
 
