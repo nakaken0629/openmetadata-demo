@@ -15,6 +15,8 @@ OpenMetadata 本体をローカルの Docker 上で起動するための設定�
 curl -sL -o docker-compose.yml https://github.com/open-metadata/OpenMetadata/releases/download/2.0.3-release/docker-compose.yml
 ```
 
+MySQL のデータディレクトリは `docker-compose.override.yml` で名前付きボリュームに置き換えています。理由は [docs/docker-compose-override.md](docs/docker-compose-override.md) を参照してください。
+
 ## 前提条件
 
 - Docker 20.10.0 以上
