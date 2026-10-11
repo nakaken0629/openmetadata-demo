@@ -7,6 +7,13 @@ models:
       - name: customer_id
         description: 顧客 ID
         data_tests: [unique, not_null]
+        config:
+          meta:
+            metrics:
+              customer_count:
+                type: count_distinct
+                label: 顧客数
+                description: 会員の数
       - name: first_name
         description: 名
       - name: last_name
@@ -36,6 +43,15 @@ models:
         description: 注文数
       - name: lifetime_value
         description: 累計購入金額（ドル）
+        config:
+          meta:
+            metrics:
+              average_lifetime_value:
+                type: average
+                label: 平均 LTV
+                description: 顧客 1 人あたりの累計購入金額の平均（ドル）
+                format: usd
+                round: 2
       - name: number_of_sessions
         description: EC サイトへの訪問（セッション）数
       - name: number_of_inquiries
@@ -61,21 +77,53 @@ models:
         description: 終了日
       - name: budget
         description: 予算（円）
+        config:
+          meta:
+            metrics:
+              total_budget:
+                type: sum
+                label: 予算合計
+                description: キャンペーンの予算の合計（円）
+                format: jpy
       - name: number_of_sessions
         description: キャンペーン経由のセッション数
       - name: number_of_conversions
         description: キャンペーン経由で購入したセッション数
       - name: revenue
         description: キャンペーン経由の売上（ドル）
+        config:
+          meta:
+            metrics:
+              campaign_revenue:
+                type: sum
+                label: キャンペーン経由の売上
+                description: キャンペーン経由のセッションで購入された注文の決済金額の合計（ドル）
+                format: usd
+                round: 2
 
   - name: fct_orders
     description: 注文。注文ごとに 1 行。決済金額と、購入したセッションの流入元を含む
     config:
       tags: [sales]
+      meta:
+        joins:
+          - join: dim_customers
+            sql_on: ${fct_orders.customer_id} = ${dim_customers.customer_id}
+            relationship: many-to-one
+          - join: dim_campaigns
+            sql_on: ${fct_orders.campaign_id} = ${dim_campaigns.campaign_id}
+            relationship: many-to-one
     columns:
       - name: order_id
         description: 注文 ID
         data_tests: [unique, not_null]
+        config:
+          meta:
+            metrics:
+              order_count:
+                type: count_distinct
+                label: 注文数
+                description: 注文の数
       - name: customer_id
         description: 注文した顧客の顧客 ID
         data_tests:
@@ -84,6 +132,13 @@ models:
               arguments:
                 to: ref('dim_customers')
                 field: customer_id
+        config:
+          meta:
+            metrics:
+              purchasing_customer_count:
+                type: count_distinct
+                label: 購入顧客数
+                description: 注文した顧客の数
       - name: order_date
         description: 注文日
       - name: status
@@ -92,6 +147,15 @@ models:
         description: クレジットカードでの決済金額（ドル）
       - name: coupon_amount
         description: クーポンでの決済金額（ドル）
+        config:
+          meta:
+            metrics:
+              total_coupon_amount:
+                type: sum
+                label: クーポン利用額
+                description: クーポンでの決済金額の合計（ドル）
+                format: usd
+                round: 2
       - name: bank_transfer_amount
         description: 銀行振込での決済金額（ドル）
       - name: gift_card_amount
@@ -100,6 +164,21 @@ models:
         description: 決済金額の合計（ドル）
         data_tests:
           - non_negative
+        config:
+          meta:
+            metrics:
+              total_revenue:
+                type: sum
+                label: 売上
+                description: 注文の決済金額の合計（ドル）
+                format: usd
+                round: 2
+              average_order_value:
+                type: average
+                label: 平均注文単価
+                description: 注文 1 件あたりの決済金額の平均（ドル）
+                format: usd
+                round: 2
       - name: session_key
         description: 購入したセッションのキー
       - name: traffic_source
@@ -120,12 +199,46 @@ models:
     description: EC サイトへの訪問（セッション）。セッションごとに 1 行
     config:
       tags: [marketing]
+      meta:
+        joins:
+          - join: dim_campaigns
+            sql_on: ${fct_sessions.campaign_id} = ${dim_campaigns.campaign_id}
+            relationship: many-to-one
+        metrics:
+          conversion_rate:
+            type: number
+            label: コンバージョン率
+            description: セッションのうち購入に至ったセッションの割合
+            # 件数同士の割り算は整数の割り算になるため、numeric に変換してから割る
+            sql: ${converted_session_count}::numeric / nullif(${session_count}, 0)
+            format: percent
+            round: 1
     columns:
       - name: session_key
         description: セッションを一意に識別するキー
         data_tests: [unique, not_null]
+        config:
+          meta:
+            metrics:
+              session_count:
+                type: count_distinct
+                label: セッション数
+                description: EC サイトへの訪問（セッション）の数
+              converted_session_count:
+                type: count_distinct
+                label: 購入セッション数
+                description: 購入に至ったセッションの数
+                filters:
+                  - is_converted: true
       - name: user_pseudo_id
         description: ブラウザ（Cookie）ごとに付与される匿名のユーザー ID
+        config:
+          meta:
+            metrics:
+              visitor_count:
+                type: count_distinct
+                label: 訪問者数
+                description: EC サイトを訪問したブラウザ（user_pseudo_id）の数
       - name: customer_id
         description: 顧客 ID。ログインしていないセッションでも、同じブラウザでログインしたことがあればその顧客とみなす
         data_tests:
@@ -158,6 +271,14 @@ models:
         description: デバイスの種類
       - name: page_views
         description: ページビュー数
+        config:
+          meta:
+            metrics:
+              average_page_views:
+                type: average
+                label: 平均ページビュー数
+                description: セッション 1 件あたりのページビュー数の平均
+                round: 1
       - name: item_views
         description: 商品詳細の閲覧数
       - name: is_converted
@@ -171,10 +292,28 @@ models:
     description: 問い合わせ。問い合わせごとに 1 行
     config:
       tags: [customer]
+      meta:
+        joins:
+          - join: dim_customers
+            sql_on: ${fct_inquiries.customer_id} = ${dim_customers.customer_id}
+            relationship: many-to-one
     columns:
       - name: inquiry_id
         description: 問い合わせ ID
         data_tests: [unique, not_null]
+        config:
+          meta:
+            metrics:
+              inquiry_count:
+                type: count_distinct
+                label: 問い合わせ数
+                description: 問い合わせの数
+              open_inquiry_count:
+                type: count_distinct
+                label: 未完了の問い合わせ数
+                description: 対応が完了していない（open または in_progress の）問い合わせの数
+                filters:
+                  - status: "!closed"
       - name: contact_id
         description: 問い合わせた顧客の CRM の顧客 ID
       - name: customer_id
@@ -193,3 +332,11 @@ models:
         description: 完了日時
       - name: resolution_hours
         description: 受付から完了までの時間（時間）。未完了の場合は NULL
+        config:
+          meta:
+            metrics:
+              average_resolution_hours:
+                type: average
+                label: 平均対応時間
+                description: 完了した問い合わせの、受付から完了までの時間の平均（時間）
+                round: 1

@@ -63,6 +63,8 @@ dbt プロジェクトは `dbt/` にあります。モデルは層ごとに別�
 
 `dim_customers.contact_id` の not_null テストは、CRM に登録されていない会員（8 名）を検出するため警告（WARN）になります。
 
+marts のモデルには、Lightdash で使うメトリクス（売上、注文数、コンバージョン率など）とモデル間の結合を `config.meta` に定義しています（`models/marts/_marts__models.yml`）。
+
 dbt コンテナは `dbt build` の後に `dbt docs generate --no-compile` を実行し、`dbt/target/` に次の成果物を出力します。`--no-compile` を付けないと、`run_results.json` が docs generate の結果で上書きされ、テスト結果が失われます。
 
 | ファイル | 内容 |
