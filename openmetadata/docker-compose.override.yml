@@ -14,3 +14,23 @@ services:
   mysql:
     volumes:
       - db-data:/var/lib/mysql
+
+  # データ基盤（DWH）と Lightdash に接続できるよう、共有ネットワークに参加する。
+  # サービスの接続テストはサーバー、メタデータの取り込みは ingestion（Airflow）から行われる。
+  openmetadata-server:
+    networks:
+      - app_net
+      - openmetadata-demo
+
+  ingestion:
+    networks:
+      - app_net
+      - openmetadata-demo
+    volumes:
+      # データ基盤の dbt の成果物（manifest.json、catalog.json、run_results.json）
+      - ../data-platform/dbt/target:/opt/dbt-artifacts:ro
+
+networks:
+  # データ基盤・Lightdash と共有するネットワーク（事前に docker network create で作成する）
+  openmetadata-demo:
+    external: true

@@ -15,13 +15,20 @@ OpenMetadata 本体をローカルの Docker 上で起動するための設定�
 curl -sL -o docker-compose.yml https://github.com/open-metadata/OpenMetadata/releases/download/2.0.3-release/docker-compose.yml
 ```
 
-MySQL のデータディレクトリは `docker-compose.override.yml` で名前付きボリュームに置き換えています。理由は [docs/docker-compose-override.md](docs/docker-compose-override.md) を参照してください。
+`docker-compose.override.yml` では、公式の設定に次の変更を加えています。
+
+- MySQL のデータディレクトリを名前付きボリュームに置き換え（理由は [docs/docker-compose-override.md](docs/docker-compose-override.md) を参照）
+- サーバーと ingestion を、データ基盤・Lightdash と共有するネットワーク `openmetadata-demo` に参加させる
+- ingestion に、データ基盤の dbt の成果物（`../data-platform/dbt/target`）を `/opt/dbt-artifacts` として読み取り専用でマウント
+
+データ基盤と Lightdash のメタデータを取り込む手順は [docs/ingestion.md](docs/ingestion.md) を参照してください。
 
 ## 前提条件
 
 - Docker 20.10.0 以上
 - Docker Compose v2.1.1 以上
 - Docker に割り当てるリソース: メモリ 6 GiB 以上、vCPU 4 以上
+- `openmetadata-demo` ネットワークが作成されていること（`docker network create openmetadata-demo`）
 
 ## 起動
 
