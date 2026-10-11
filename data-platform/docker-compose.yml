@@ -1,3 +1,6 @@
+# プロジェクト名を明示（他の環境とボリューム名などが重複しないようにするため）
+name: openmetadata-demo-data-platform
+
 services:
   # DWH
   postgres:
