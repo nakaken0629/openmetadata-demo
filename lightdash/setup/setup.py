@@ -4,6 +4,7 @@
 2. 組織を作成する（作成済みの場合は省略）
 3. プロジェクトを作成する（同名のプロジェクトがある場合は省略）
 4. プロジェクトをリフレッシュし、dbt プロジェクトのコンパイル完了を待つ
+5. スペースと、サンプルのチャート・ダッシュボードを作成する（同名のものがある場合は省略）
 
 何度実行しても同じ状態になる。設定は環境変数で指定する。
 """
@@ -21,6 +22,16 @@ ADMIN_EMAIL = os.environ["ADMIN_EMAIL"]
 ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
 ORGANIZATION_NAME = os.environ["ORGANIZATION_NAME"]
 PROJECT_NAME = os.environ["PROJECT_NAME"]
+SPACE_NAME = os.environ["SPACE_NAME"]
+DASHBOARD_NAME = os.environ["DASHBOARD_NAME"]
+
+# サンプルのチャート（名前、Explore、ディメンション、メトリクス）。いずれも棒グラフ
+CHARTS = [
+    ("月別売上", "fct_orders", "fct_orders_order_date_month", "fct_orders_total_revenue"),
+    ("会員ランク別の売上", "fct_orders", "dim_customers_membership_rank", "fct_orders_total_revenue"),
+    ("キャンペーン別のコンバージョン率", "fct_sessions", "dim_campaigns_campaign_name", "fct_sessions_conversion_rate"),
+    ("問い合わせの種類別件数", "fct_inquiries", "fct_inquiries_category", "fct_inquiries_inquiry_count"),
+]
 
 PROJECT = {
     "name": PROJECT_NAME,
@@ -117,12 +128,86 @@ def refresh_project(project_uuid):
     sys.exit("Timed out waiting for dbt project compilation")
 
 
+def ensure_space(project_uuid):
+    for space in call("GET", f"/projects/{project_uuid}/spaces"):
+        if space["name"] == SPACE_NAME:
+            print(f"Space '{SPACE_NAME}' already exists")
+            return space["uuid"]
+    space_uuid = call("POST", f"/projects/{project_uuid}/spaces", {"name": SPACE_NAME})["uuid"]
+    print(f"Created space '{SPACE_NAME}'")
+    return space_uuid
+
+
+def ensure_charts(project_uuid, space_uuid):
+    existing = {c["name"]: c["uuid"] for c in call("GET", f"/projects/{project_uuid}/charts") if c["spaceUuid"] == space_uuid}
+    chart_uuids = []
+    for name, explore, dimension, metric in CHARTS:
+        if name in existing:
+            print(f"Chart '{name}' already exists")
+            chart_uuids.append(existing[name])
+            continue
+        chart = {
+            "name": name,
+            "tableName": explore,
+            "spaceUuid": space_uuid,
+            "metricQuery": {
+                "exploreName": explore,
+                "dimensions": [dimension],
+                "metrics": [metric],
+                "filters": {},
+                "sorts": [{"fieldId": dimension, "descending": False}],
+                "limit": 500,
+                "tableCalculations": [],
+            },
+            "chartConfig": {
+                "type": "cartesian",
+                "config": {
+                    "layout": {"xField": dimension, "yField": [metric]},
+                    "eChartsConfig": {
+                        "series": [{"type": "bar", "encode": {"xRef": {"field": dimension}, "yRef": {"field": metric}}}]
+                    },
+                },
+            },
+            "tableConfig": {"columnOrder": []},
+        }
+        chart_uuids.append(call("POST", f"/projects/{project_uuid}/saved", chart)["uuid"])
+        print(f"Created chart '{name}'")
+    return chart_uuids
+
+
+def ensure_dashboard(project_uuid, space_uuid, chart_uuids):
+    for dashboard in call("GET", f"/projects/{project_uuid}/dashboards"):
+        if dashboard["name"] == DASHBOARD_NAME:
+            print(f"Dashboard '{DASHBOARD_NAME}' already exists")
+            return
+    # チャートを 2 列に並べる
+    tiles = [
+        {
+            "type": "saved_chart",
+            "x": (i % 2) * 18,
+            "y": (i // 2) * 9,
+            "w": 18,
+            "h": 9,
+            "properties": {"savedChartUuid": chart_uuid},
+        }
+        for i, chart_uuid in enumerate(chart_uuids)
+    ]
+    call("POST", f"/projects/{project_uuid}/dashboards", {"name": DASHBOARD_NAME, "spaceUuid": space_uuid, "tiles": tiles, "tabs": []})
+    print(f"Created dashboard '{DASHBOARD_NAME}'")
+
+
 def main():
     wait_for_lightdash()
     login_or_register()
     ensure_organization()
     project_uuid = ensure_project()
     refresh_project(project_uuid)
+    space_uuid = ensure_space(project_uuid)
+    chart_uuids = ensure_charts(project_uuid, space_uuid)
+    ensure_dashboard(project_uuid, space_uuid, chart_uuids)
+    # OpenMetadata で Lightdash のサービスを作成する際に入力する値
+    print(f"Project UUID: {project_uuid}")
+    print(f"Space UUID: {space_uuid}")
     print("Done")
 
 

@@ -66,6 +66,8 @@ services:
       ADMIN_PASSWORD: lightdash123
       ORGANIZATION_NAME: EC Analytics
       PROJECT_NAME: EC サイト分析
+      SPACE_NAME: EC サイト分析
+      DASHBOARD_NAME: EC サイト KPI
       DBT_VERSION: v1.12
       DBT_PROJECT_DIR: /usr/app/dbt
       WAREHOUSE_HOST: data_platform_postgres
