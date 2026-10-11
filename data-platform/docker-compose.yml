@@ -1,0 +1,62 @@
+services:
+  # DWH
+  postgres:
+    container_name: data_platform_postgres
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_USER: dwh
+      POSTGRES_PASSWORD: dwh
+      POSTGRES_DB: dwh
+    ports:
+      - "5432:5432"
+    volumes:
+      - dwh-data:/var/lib/postgresql/data
+    networks:
+      - default
+      - openmetadata-demo
+    healthcheck:
+      test: pg_isready --username=dwh --dbname=dwh
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # エクスポートファイル（sources/）を用意する。完了後に終了する
+  generator:
+    container_name: data_platform_generator
+    image: python:3.12-slim
+    working_dir: /work
+    command: >-
+      sh -c "python -B scripts/fetch_webapp.py
+      && python -B scripts/generate_crm.py
+      && python -B scripts/generate_ga.py"
+    volumes:
+      - ./scripts:/work/scripts:ro
+      - ./sources:/work/sources
+
+  # エクスポートファイルを raw テーブルに取り込む。取り込み完了後に終了する
+  loader:
+    container_name: data_platform_loader
+    image: postgres:17
+    command: bash /loader/load.sh
+    environment:
+      PGHOST: postgres
+      PGUSER: dwh
+      PGPASSWORD: dwh
+      PGDATABASE: dwh
+    volumes:
+      - ./loader:/loader:ro
+      - ./sources:/sources:ro
+    depends_on:
+      generator:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+
+volumes:
+  dwh-data:
+
+networks:
+  # OpenMetadata・Lightdash と共有するネットワーク（事前に docker network create で作成する）
+  openmetadata-demo:
+    external: true
