@@ -2,9 +2,12 @@
 # docker compose up 時に自動で読み込まれる。
 
 # macOS ではホストのディレクトリ（大文字・小文字を区別しないファイルシステム）を
-# MySQL のデータディレクトリにバインドマウントすると、lower_case_table_names=2 となり
-# マイグレーションが "Got error 168 from storage engine" で失敗する。
-# そのため、データディレクトリを名前付きボリュームに置き換える。
+# MySQL のデータディレクトリにバインドマウントすると、MySQL が
+# lower_case_table_names=2 で起動する（Linux 上の通常の動作は 0）。
+# 過去にこの構成でマイグレーションが "Got error 168 from storage engine" で失敗した。
+# 空のディレクトリからの再検証では失敗は再現せず、原因は特定できていない。
+# ファイルシステムの違いによる問題を避けるため、データディレクトリを
+# 名前付きボリュームに置き換える。
 volumes:
   db-data:
 services:

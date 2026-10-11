@@ -54,4 +54,4 @@ docker compose down            # コンテナを削除（データは保持）
 docker compose down --volumes  # 名前付きボリュームも削除
 ```
 
-MySQL のデータは `./docker-volume/` に保存されます（Git 管理対象外）。完全に初期化する場合は `docker compose down --volumes` の後にこのディレクトリも削除してください。
+MySQL のデータは `docker-compose.override.yml` により名前付きボリューム（`openmetadata_db-data`）に保存されるため、`docker compose down --volumes` で完全に初期化されます。
