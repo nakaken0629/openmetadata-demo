@@ -27,11 +27,11 @@ Settings > Services > Databases から、Postgres のサービスを追加しま
 
 `openmetadata` ユーザーは、データ基盤の Postgres の初回起動時に作成される読み取り専用のユーザーです（`data-platform/postgres/init/01_openmetadata_user.sql`）。
 
-接続テスト（Test Connection）が成功することを確認してから保存します。
+接続テスト（Test Connection）が成功することを確認してから保存します。接続テストには、クエリの履歴（`pg_stat_statements`）を取得できるかの確認も含まれます。データ基盤の Postgres では `pg_stat_statements` を有効にしているため、利用状況（Usage）やクエリからのリネージ（Lineage）の取り込みも追加できます。
 
 ### メタデータの取り込み
 
-作成したサービスにメタデータの取り込み（Metadata Ingestion）を追加し、デプロイして実行します。staging と intermediate のモデルはビューのため、ビューも取り込む設定（Include Views）を有効にします。
+作成したサービスにメタデータの取り込み（Metadata Ingestion）を追加し、デプロイして実行します。設定は既定値のままでかまいません。staging と intermediate のモデルはビューですが、ビューは既定で取り込まれます（取り込みの設定 `includeViews` の既定値が有効のため）。
 
 次のスキーマが取り込まれます。
 
