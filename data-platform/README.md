@@ -114,6 +114,8 @@ docker compose run --rm dbt
 
 読み取り専用ユーザーは、Postgres の初回起動時に `postgres/init/01_openmetadata_user.sql` で作成されます。`dwh` ユーザーが作成するすべてのスキーマ・テーブル・ビューを参照できます。
 
+OpenMetadata が実行されたクエリの履歴から利用状況とリネージを作成できるよう、Postgres では拡張機能 `pg_stat_statements` を有効にしています。読み取り専用ユーザーには、他のユーザーのクエリを参照するための `pg_read_all_stats` ロールを付与しています。
+
 ## 停止・削除
 
 ```bash

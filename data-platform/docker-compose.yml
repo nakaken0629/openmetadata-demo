@@ -7,6 +7,8 @@ services:
     container_name: data_platform_postgres
     image: postgres:17
     restart: always
+    # OpenMetadata がクエリ履歴を取得できるよう pg_stat_statements を読み込む
+    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all
     environment:
       POSTGRES_USER: dwh
       POSTGRES_PASSWORD: dwh
