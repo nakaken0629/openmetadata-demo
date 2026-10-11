@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "lightdash",
+      "credentials": [
+        {
+          "accessKey": "lightdash",
+          "secretKey": "lightdash-secret"
+        }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

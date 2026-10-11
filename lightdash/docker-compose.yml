@@ -1,0 +1,139 @@
+# Lightdash 公式の docker-compose.yml（2.565.0）をもとに、次の点を変更している。
+# - オブジェクトストレージを MinIO から SeaweedFS に置き換え
+# - headless-browser はビルドせず、公式の Dockerfile.headless-browser と同じイメージを直接使用
+# - イメージのバージョンを固定
+# - ポートを 8080 から 8090 に変更（OpenMetadata の Airflow と重複するため）
+# - データ基盤の dbt プロジェクトをマウントし、openmetadata-demo ネットワークに参加
+# - 使用しない環境変数（SSO、Slack、AI など）を削除
+# - プロジェクト名を明示（他の Lightdash 環境とボリューム名が重複しないようにするため）
+name: openmetadata-demo-lightdash
+
+services:
+  lightdash:
+    container_name: lightdash
+    # Lightdash のイメージは amd64 のみ提供されている
+    platform: linux/amd64
+    image: lightdash/lightdash:2.565.0
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      seaweedfs-init:
+        condition: service_completed_successfully
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: password
+      PGDATABASE: postgres
+      LIGHTDASH_SECRET: not very secret
+      PORT: 8090
+      SITE_URL: http://localhost:8090
+      SECURE_COOKIES: "false"
+      TRUST_PROXY: "false"
+      LIGHTDASH_LOG_LEVEL: info
+      LIGHTDASH_INSTALL_TYPE: docker_image
+      LIGHTDASH_MIGRATION_EXECUTION_MODE: compose
+      LIGHTDASH_QUERY_MAX_LIMIT: 5000
+      LIGHTDASH_MAX_PAYLOAD: 5mb
+      ALLOW_MULTIPLE_ORGS: "false"
+      HEADLESS_BROWSER_HOST: headless-browser
+      HEADLESS_BROWSER_PORT: 3000
+      SCHEDULER_ENABLED: "true"
+      S3_ENDPOINT: http://seaweedfs:8333
+      S3_REGION: us-east-1
+      S3_BUCKET: default
+      S3_ACCESS_KEY: lightdash
+      S3_SECRET_KEY: lightdash-secret
+      S3_FORCE_PATH_STYLE: "true"
+    volumes:
+      # データ基盤の dbt プロジェクト
+      - ../data-platform/dbt:/usr/app/dbt
+    ports:
+      - "8090:8090"
+    networks:
+      - default
+      - openmetadata-demo
+
+  # 管理者ユーザー・組織・プロジェクトを作成し、dbt プロジェクトをコンパイルする。完了後に終了する
+  setup:
+    container_name: lightdash_setup
+    image: python:3.12-slim
+    command: python -B /setup/setup.py
+    environment:
+      LIGHTDASH_URL: http://lightdash:8090
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: lightdash123
+      ORGANIZATION_NAME: EC Analytics
+      PROJECT_NAME: EC サイト分析
+      DBT_VERSION: v1.12
+      DBT_PROJECT_DIR: /usr/app/dbt
+      WAREHOUSE_HOST: data_platform_postgres
+      WAREHOUSE_PORT: 5432
+      WAREHOUSE_USER: dwh
+      WAREHOUSE_PASSWORD: dwh
+      WAREHOUSE_DBNAME: dwh
+      WAREHOUSE_SCHEMA: marts
+    volumes:
+      - ./setup:/setup:ro
+    depends_on:
+      - lightdash
+
+  # Lightdash 自体のメタデータを保存する DB
+  db:
+    container_name: lightdash_db
+    image: pgvector/pgvector:pg15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready --username=postgres
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # S3 互換のオブジェクトストレージ（クエリ結果やエクスポートファイルの保存先）
+  seaweedfs:
+    container_name: lightdash_seaweedfs
+    image: chrislusf/seaweedfs:4.48
+    restart: always
+    command: server -dir=/data -master.volumeSizeLimitMB=1024 -s3 -s3.config=/etc/seaweedfs/s3.json
+    volumes:
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+      - seaweedfs-data:/data
+
+  # SeaweedFS にバケットを作成する。完了後に終了する
+  seaweedfs-init:
+    container_name: lightdash_seaweedfs_init
+    image: amazon/aws-cli:2.31.13
+    entrypoint: sh /init.sh
+    environment:
+      AWS_ACCESS_KEY_ID: lightdash
+      AWS_SECRET_ACCESS_KEY: lightdash-secret
+      AWS_DEFAULT_REGION: us-east-1
+      S3_ENDPOINT: http://seaweedfs:8333
+      S3_BUCKET: default
+      EXPIRATION_DAYS: 1
+    volumes:
+      - ./seaweedfs/init.sh:/init.sh:ro
+    depends_on:
+      - seaweedfs
+
+  # PDF・画像のエクスポートやスケジュール配信で使うヘッドレスブラウザ
+  headless-browser:
+    container_name: lightdash_headless_browser
+    image: ghcr.io/browserless/chromium:v2.49.0
+    restart: always
+
+volumes:
+  db-data:
+  seaweedfs-data:
+
+networks:
+  # OpenMetadata・データ基盤と共有するネットワーク（事前に docker network create で作成する）
+  openmetadata-demo:
+    external: true
