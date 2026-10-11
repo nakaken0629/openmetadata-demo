@@ -78,4 +78,4 @@ docker logs lightdash_setup
 
 接続テストが成功することを確認してから保存し、メタデータの取り込みを追加して実行します。スペース内のダッシュボード「EC サイト KPI」と、そのチャートが取り込まれます。
 
-OpenMetadata 2.0.3 の Lightdash コネクタは、ダッシュボードとチャートからテーブルへのリネージを作成しません。
+OpenMetadata 2.0.3 の Lightdash コネクタは、ダッシュボードとチャートからテーブルへのリネージを作成しません。リネージを手動で追加する手順は [dashboard-lineage.md](dashboard-lineage.md) を参照してください。
