@@ -1,5 +1,17 @@
+# dbt の生成物（コンパイル結果・manifest.json・catalog.json など）
 target/
+# dbt のログ
 logs/
+# dbt deps でインストールされるパッケージ
 dbt_packages/
 # dbt が自動生成する匿名ユーザー ID
 .user.yml
+
+# 環境変数ファイル（接続情報を上書きする場合に使う）
+.env
+
+# Python のキャッシュ・仮想環境（ホストで dbt を実行する場合）
+__pycache__/
+*.py[cod]
+.venv/
+venv/
