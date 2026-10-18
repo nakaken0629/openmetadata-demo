@@ -1,0 +1,2 @@
+# セットアップや docker compose 実行時に出力されるログ
+*.log
