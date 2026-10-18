@@ -1,5 +1,7 @@
 # dbt の生成物（コンパイル結果・manifest.json・catalog.json など）
-target/
+# ディレクトリ自体は .gitkeep で管理し、中身はすべて管理対象外とする
+target/*
+!target/.gitkeep
 # dbt のログ
 logs/
 # dbt deps でインストールされるパッケージ
